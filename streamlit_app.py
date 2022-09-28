@@ -1,4 +1,4 @@
-import streamlist as st 
+import streamlit as st 
 
 header = st.beta_container()
 dataset = st.beta_container()
