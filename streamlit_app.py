@@ -1,38 +1,39 @@
-from collections import namedtuple
-import altair as alt
-import math
-import pandas as pd
-import streamlit as st
+st.header("Fish Weight Prediction App")
+st.text_input("Enter your Name: ", key="name")
+data = pd.read_csv("https://raw.githubusercontent.com/gurokeretcha/WishWeightPredictionApplication/master/Fish.csv")
+#load label encoder
+encoder = LabelEncoder()
+encoder.classes_ = np.load('classes.npy',allow_pickle=True)
 
-"""
-# Welcome to Streamlit!
+# load model
+best_xgboost_model = xgb.XGBRegressor()
+best_xgboost_model.load_model("best_model.json")
 
-Edit `/streamlit_app.py` to customize this app to your heart's desire :heart:
+if st.checkbox('Show Training Dataframe'):
+    data
 
-If you have any questions, checkout our [documentation](https://docs.streamlit.io) and [community
-forums](https://discuss.streamlit.io).
+st.subheader("Please select relevant features of your fish!")
+left_column, right_column = st.columns(2)
+with left_column:
+    inp_species = st.radio(
+        'Name of the fish:',
+        np.unique(data['Species']))
 
-In the meantime, below is an example of what you can do with just a few lines of code:
-"""
+
+input_Length1 = st.slider('Vertical length(cm)', 0.0, max(data["Length1"]), 1.0)
+input_Length2 = st.slider('Diagonal length(cm)', 0.0, max(data["Length2"]), 1.0)
+input_Length3 = st.slider('Cross length(cm)', 0.0, max(data["Length3"]), 1.0)
+input_Height = st.slider('Height(cm)', 0.0, max(data["Height"]), 1.0)
+input_Width = st.slider('Diagonal width(cm)', 0.0, max(data["Width"]), 1.0)
 
 
-with st.echo(code_location='below'):
-    total_points = st.slider("Number of points in spiral", 1, 5000, 2000)
-    num_turns = st.slider("Number of turns in spiral", 1, 100, 9)
+if st.button('Make Prediction'):
+    input_species = encoder.transform(np.expand_dims(inp_species, -1))
+    inputs = np.expand_dims(
+        [int(input_species), input_Length1, input_Length2, input_Length3, input_Height, input_Width], 0)
+    prediction = best_xgboost_model.predict(inputs)
+    print("final pred", np.squeeze(prediction, -1))
+    st.write(f"Your fish weight is: {np.squeeze(prediction, -1):.2f}g")
 
-    Point = namedtuple('Point', 'x y')
-    data = []
-
-    points_per_turn = total_points / num_turns
-
-    for curr_point_num in range(total_points):
-        curr_turn, i = divmod(curr_point_num, points_per_turn)
-        angle = (curr_turn + 1) * 2 * math.pi * i / points_per_turn
-        radius = curr_point_num / total_points
-        x = radius * math.cos(angle)
-        y = radius * math.sin(angle)
-        data.append(Point(x, y))
-
-    st.altair_chart(alt.Chart(pd.DataFrame(data), height=500, width=500)
-        .mark_circle(color='#0068c9', opacity=0.5)
-        .encode(x='x:Q', y='y:Q'))
+    st.write(f"Thank you {st.session_state.name}! I hope you liked it.")
+    st.write(f"If you want to see more advanced applications you can follow me on [medium](https://medium.com/@gkeretchashvili)")
